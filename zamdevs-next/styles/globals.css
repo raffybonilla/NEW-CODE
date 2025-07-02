@@ -1,0 +1,130 @@
+/* stylelint-disable */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* stylelint-enable */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital,wght@0,400;1,400&display=swap');
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@layer utilities {
+  .animate-spin-slow {
+    animation: spin 6s linear infinite;
+  }
+}
+
+.font-serif {
+  font-family: 'DM Serif Display', serif;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  0% { left: -60%; }
+  100% { left: 120%; }
+}
+.animate-sweep {
+  animation: sweep 3.5s linear infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+.animate-twinkle {
+  animation: twinkle 2.2s ease-in-out infinite;
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.animate-bounce-slow {
+  animation: bounce-slow 2.2s infinite;
+}
+
+@keyframes cloud-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(60px); }
+}
+.animate-cloud-left {
+  animation: cloud-left 18s linear infinite alternate;
+}
+@keyframes cloud-right {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-40px); }
+}
+.animate-cloud-right {
+  animation: cloud-right 22s linear infinite alternate;
+}
+@keyframes float-moon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+}
+.animate-float-moon {
+  animation: float-moon 7s ease-in-out infinite;
+}
+
+@keyframes gradient-bg {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-gradient-bg {
+  background: linear-gradient(120deg, #A09ABC, #B6A6CA, #E1D8E9, #D4BEBE);
+  background-size: 200% 200%;
+  animation: gradient-bg 12s ease-in-out infinite;
+}

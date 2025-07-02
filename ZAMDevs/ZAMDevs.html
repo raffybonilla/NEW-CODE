@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reflectly App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="zam.css"> 
+</head>
+<body>
+    <header>
+        <div class="logo">Reflectly</div>
+        <div class="user-menu">
+            <span class="material-icons">notifications</span>
+            <div class="user-avatar">ZD</div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="nav-item active" data-section="dashboard">
+            <span class="material-icons">home</span>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item" data-section="journal">
+            <span class="material-icons">menu_book</span>
+            <span>Journal</span>
+        </div>
+        <div class="nav-item" data-section="mood-tracker">
+            <span class="material-icons">mood</span>
+            <span>Mood Tracker</span>
+        </div>
+        <div class="nav-item" data-section="tasks">
+            <span class="material-icons">task</span>
+            <span>Tasks</span>
+        </div>
+        <div class="nav-item" data-section="analytics">
+            <span class="material-icons">insights</span>
+            <span>Analytics</span>
+        </div>
+        <div class="nav-item" data-section="settings">
+            <span class="material-icons">settings</span>
+            <span>Settings</span>
+        </div>
+        <div class="nav-item" id="logout-btn" style="color:#b91c1c;cursor:pointer;">
+            <span class="material-icons">logout</span>
+            <span>Logout</span>
+        </div>
+    </nav>
+
+    <main>
+        <div class="welcome-card">
+            <h1>Welcome back, ZAMDevs!</h1>
+            <p class="subtitle">How are you feeling today?</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Today's Mood</div>
+                </div>
+                <div class="mood-display" id="todays-mood-emoji" style="font-size:2em;">😊</div>
+                <button class="btn">
+                    <span class="material-icons">edit</span>
+                    Update Mood
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Mood Consistency</div>
+                </div>
+                <div class="progress-container">
+                    <svg class="progress-ring" viewBox="0 0 100 100">
+                        <circle class="background" cx="50" cy="50" r="45"/>
+                        <circle class="progress" cx="50" cy="50" r="45" stroke-dasharray="282.6" stroke-dashoffset="70.6"/>
+                    </svg>
+                </div>
+                <div id="mood-consistency-bar" style="width:60px;height:60px;border-radius:50%;background:conic-gradient(#7c3aed 0%, #e0e7ff 0% 100%);margin:auto;"></div>
+                <button type="button" class="btn" id="view-trends-btn">View Trends</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Quick Entry</div>
+                </div>
+                <p style="margin-bottom: 20px; color: var(--text-light);">Tap below to create a new journal entry</p>
+                <button class="btn" id="open-modal">
+                    <span class="material-icons">add</span>
+                    New Entry
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Recent Activity</div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                        <span class="material-icons" style="margin-right: 10px; color: var(--primary);">check_circle</span>
+                        <span>Logged mood: Happy</span>
+                        <span style="margin-left: auto; color: var(--text-light); font-size: 0.9rem;">Today, 8:30 AM</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                        <span class="material-icons" style="margin-right: 10px; color: var(--primary);">article</span>
+                        <span>Created journal entry</span>
+                        <span style="margin-left: auto; color: var(--text-light); font-size: 0.9rem;">Yesterday</span>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <span class="material-icons" style="margin-right: 10px; color: var(--primary);">task</span>
+                        <span>Completed task</span>
+                        <span style="margin-left: auto; color: var(--text-light); font-size: 0.9rem;">2 days ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add sections with matching IDs -->
+        <section id="dashboard-section">
+            <!-- dashboard content -->
+        </section>
+        <section id="journal-section" style="display:none;">
+            <h2>Journal Entries</h2>
+            <div id="journal-list"></div>
+        </section>
+        <section id="mood-tracker-section" style="display:none;">
+            <!-- mood tracker content -->
+        </section>
+        <section id="tasks-section" style="display:none;">
+            <!-- tasks content -->
+        </section>
+        <section id="analytics-section" style="display:none;">
+            <!-- analytics content -->
+        </section>
+        <section id="settings-section" style="display:none;">
+            <!-- settings content -->
+        </section>
+
+        <div id="quick-entry-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" id="close-modal" style="float:right;cursor:pointer;">&times;</span>
+                <h2>New Journal Entry</h2>
+                <div id="mood-picker" style="text-align:center; margin-bottom:10px;">
+                    <label style="font-weight:600;">Pick your mood:</label><br>
+                    <span class="mood-option" data-mood="happy" style="font-size:2em;cursor:pointer;">😊</span>
+                    <span class="mood-option" data-mood="neutral" style="font-size:2em;cursor:pointer;">😐</span>
+                    <span class="mood-option" data-mood="sad" style="font-size:2em;cursor:pointer;">😢</span>
+                    <span class="mood-option" data-mood="angry" style="font-size:2em;cursor:pointer;">😠</span>
+                    <span class="mood-option" data-mood="excited" style="font-size:2em;cursor:pointer;">🤩</span>
+                </div>
+                <input type="hidden" id="selected-mood" value="">
+                <form id="quick-entry-form">
+                    <textarea id="quick-entry-text" rows="5" placeholder="Write your thoughts..."></textarea>
+                    <br>
+                    <button type="submit" class="btn">Save Entry</button>
+                </form>
+                <div id="quick-entry-success" style="display:none; color:green; margin-top:10px;">Entry saved!</div>
+            </div>
+        </div>
+
+        <!-- Mood Trends Modal -->
+        <div id="trends-modal" class="modal" style="display:none;">
+          <div class="modal-content" style="max-width:600px;">
+            <span class="close" id="close-trends-modal" style="float:right;cursor:pointer;">&times;</span>
+            <h2>Mood Trends</h2>
+            <div style="margin-bottom:1em; text-align:center;">
+                <select id="calendar-year"></select>
+                <select id="calendar-month"></select>
+            </div>
+            <div id="calendar-container"></div>
+            <div id="mood-summary" style="margin-top:1em;"></div>
+          </div>
+        </div>
+    </main>
+
+    <button id="logout-btn">Logout</button>
+
+    <script src="zam.js"></script>
+   <script>
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            window.location.href = "Login-Signup.html";
+        });
+    </script>
+</body>
+</html>
