@@ -10,6 +10,7 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
 
 const moods = ["😀", "🙂", "😐", "😕", "😢"];
@@ -78,7 +79,7 @@ export default function MoodTracker() {
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
         <main className={`flex-1 p-10 bg-transparent min-h-screen transition-all duration-300 ${collapsed ? 'ml-0' : 'ml-64'}`}>
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-[#A09ABC] mb-6">�� Mood Tracker</h2>
+            <h2 className="text-3xl font-bold text-[#A09ABC] mb-6">Mood Tracker</h2>
             <div className="mb-8 bg-white/60 p-6 rounded-xl shadow backdrop-blur-md border border-white/30">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div>
@@ -130,6 +131,25 @@ export default function MoodTracker() {
                   </BarChart>
                 </ResponsiveContainer>
               )}
+            </div>
+            {/* Static BarChart Example */}
+            <div className="bg-white/70 rounded-xl p-6 shadow border border-white/30 backdrop-blur-md mt-8">
+              <h3 className="text-xl font-semibold text-[#6C63A6] mb-4">Static Mood Bar Chart Example</h3>
+              <BarChart width={400} height={300} data={[
+                { name: 'Mon', mood: 3 },
+                { name: 'Tue', mood: 4 },
+                { name: 'Wed', mood: 2 },
+                { name: 'Thu', mood: 5 },
+                { name: 'Fri', mood: 1 },
+                { name: 'Sat', mood: 4 },
+                { name: 'Sun', mood: 3 },
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="mood" fill="#8884d8" />
+              </BarChart>
             </div>
           </div>
         </main>

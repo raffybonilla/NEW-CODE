@@ -26,6 +26,8 @@ export default function Journal() {
   const [emojiModalOpen, setEmojiModalOpen] = useState(false);
   const [isPublic, setIsPublic] = useState(true);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
   const router = useRouter();
   const moodOptions = ["😊", "😌", "😥", "🥰", "😪"];
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -60,6 +62,48 @@ export default function Journal() {
     fetchEntries();
   }, [router]);
 
+  // Separate useEffect for real-time subscriptions
+  useEffect(() => {
+    let channel: any;
+    
+    const setupSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      channel = supabase
+        .channel('journal_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'journal',
+            filter: `user_id=eq.${session.user.id}`
+          },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              setEntries(prev => [payload.new as JournalEntry, ...prev]);
+            } else if (payload.eventType === 'UPDATE') {
+              setEntries(prev => prev.map(entry => 
+                entry.id === payload.new.id ? payload.new as JournalEntry : entry
+              ));
+            } else if (payload.eventType === 'DELETE') {
+              setEntries(prev => prev.filter(entry => entry.id !== payload.old.id));
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    setupSubscription();
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, []);
+
   const openEditEntryModal = (entry: JournalEntry) => {
     setEditingEntry(entry);
     setNewEntry(entry.content);
@@ -69,40 +113,105 @@ export default function Journal() {
   };
 
   const saveEntry = async () => {
-    if (newEntry.trim() === "") return;
+    if (newEntry.trim() === "") {
+      console.log("Entry is empty, not saving");
+      return;
+    }
+    
+    console.log("Attempting to save entry:", { newEntry, isPublic, entryTitle });
+    
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
+      console.log("No session found, redirecting to login");
       router.push("/auth/login");
       return;
     }
-    if (editingEntry) {
-      // Update existing entry
-      const { data, error } = await supabase
-        .from("journal")
-        .update({ content: newEntry, public: isPublic })
-        .eq("id", editingEntry.id)
-        .select();
-      if (!error && data) {
-        setEntries(entries.map(e => e.id === editingEntry.id ? { ...e, content: newEntry, public: isPublic } : e));
-        setEditingEntry(null);
-        setNewEntry("");
-        setEntryTitle("");
-        setIsPublic(true);
-        setModalOpen(false);
+    
+    try {
+      if (editingEntry) {
+        console.log("Updating existing entry:", editingEntry.id);
+        // Update existing entry
+        const { data, error } = await supabase
+          .from("journal")
+          .update({ 
+            content: newEntry, 
+            public: isPublic,
+            title: entryTitle || null
+          })
+          .eq("id", editingEntry.id)
+          .select();
+        
+        console.log("Update result:", { data, error });
+        
+        if (error) {
+          console.error("Update error:", error);
+          setSaveMessage(`Error updating entry: ${error.message}`);
+          setSaveSuccess(true);
+          setTimeout(() => setSaveSuccess(false), 3000);
+          return;
+        }
+        
+        if (data) {
+          setEntries(entries.map(e => e.id === editingEntry.id ? { ...e, content: newEntry, public: isPublic, title: entryTitle } : e));
+          setEditingEntry(null);
+          setNewEntry("");
+          setEntryTitle("");
+          setIsPublic(true);
+          setModalOpen(false);
+          
+          // Show success message
+          setSaveMessage(isPublic ? "Entry updated and posted to public feed! 🌍" : "Entry updated and kept private! 🔒");
+          setSaveSuccess(true);
+          setTimeout(() => setSaveSuccess(false), 3000);
+        }
+      } else {
+        console.log("Creating new entry");
+        // Add new entry
+        const entryData = { 
+          content: newEntry, 
+          user_id: session.user.id, 
+          public: isPublic,
+          title: entryTitle || null
+        };
+        console.log("Entry data to insert:", entryData);
+        
+        const { data, error } = await supabase
+          .from("journal")
+          .insert([entryData])
+          .select();
+        
+        console.log("Insert result:", { data, error });
+        
+        if (error) {
+          console.error("Insert error:", error);
+          setSaveMessage(`Error saving entry: ${error.message}`);
+          setSaveSuccess(true);
+          setTimeout(() => setSaveSuccess(false), 3000);
+          return;
+        }
+        
+        if (data) {
+          setEntries([data[0], ...entries]);
+          setNewEntry("");
+          setEntryTitle("");
+          setIsPublic(true);
+          setModalOpen(false);
+          
+          // Show success message
+          if (isPublic) {
+            setSaveMessage("Entry saved and posted to public feed! 🌍 Check the Feed tab to see it.");
+          } else {
+            setSaveMessage("Entry saved as private! 🔒");
+          }
+          setSaveSuccess(true);
+          setTimeout(() => setSaveSuccess(false), 4000);
+        }
       }
-    } else {
-      // Add new entry
-      const { data, error } = await supabase
-        .from("journal")
-        .insert([{ content: newEntry, user_id: session.user.id, public: isPublic }])
-        .select();
-      if (!error && data) {
-        setEntries([data[0], ...entries]);
-        setNewEntry("");
-        setEntryTitle("");
-        setIsPublic(true);
-        setModalOpen(false);
-      }
+    } catch (error) {
+      console.error('Error saving entry:', error);
+      setSaveMessage("Error saving entry. Please try again.");
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     }
   };
 
@@ -182,8 +291,38 @@ export default function Journal() {
         <main className={`flex-1 p-10 bg-transparent min-h-screen transition-all duration-300 ${collapsed ? 'ml-0' : 'ml-64'}`}>
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold text-[#A09ABC] mb-6">📔 My Journal</h2>
+            
+            {/* Success Notification */}
+            {saveSuccess && (
+              <div className="mb-6 p-4 bg-gradient-to-r from-green-400 to-green-500 text-white rounded-xl shadow-lg backdrop-blur-md border border-green-300/30 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">✅</span>
+                  <span className="font-medium">{saveMessage}</span>
+                </div>
+              </div>
+            )}
             {/* Add Entry Button */}
-            <div className="mb-8 flex justify-end">
+            <div className="mb-8 flex justify-end gap-4">
+              <button
+                onClick={async () => {
+                  console.log("Testing database connection...");
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (session) {
+                    const { data, error } = await supabase
+                      .from("journal")
+                      .insert([{ 
+                        content: "Test entry", 
+                        user_id: session.user.id, 
+                        public: false 
+                      }])
+                      .select();
+                    console.log("Test insert result:", { data, error });
+                  }
+                }}
+                className="px-4 py-2 rounded-full bg-red-500 text-white font-bold shadow hover:bg-red-600 transition-all duration-300"
+              >
+                🧪 Test DB
+              </button>
               <button
                 onClick={() => setModalOpen(true)}
                 className="px-6 py-2 rounded-full bg-gradient-to-r from-[#A09ABC] to-[#B6A6CA] text-white font-bold shadow hover:from-[#B6A6CA] hover:to-[#A09ABC] transition-all duration-300"
@@ -243,7 +382,10 @@ export default function Journal() {
               <textarea
                 ref={textareaRef}
                 value={newEntry}
-                onChange={handleEntryChange}
+                onChange={(e) => {
+                  console.log("Textarea changed:", e.target.value);
+                  handleEntryChange(e);
+                }}
                 placeholder="Write your thoughts here..."
                 rows={5}
                 style={{ width: '100%', borderRadius: 8, padding: 12, border: '1px solid #D5CFE1', color: '#6C63A6', marginBottom: 16, resize: 'none', fontSize: 16, background: '#f8f6fa' }}
@@ -255,7 +397,10 @@ export default function Journal() {
                 </div>
               </div>
               <button
-                onClick={saveEntry}
+                onClick={() => {
+                  console.log("Save button clicked!");
+                  saveEntry();
+                }}
                 style={{ width: '100%', padding: '10px 0', borderRadius: 8, background: 'linear-gradient(90deg, #A09ABC 0%, #B6A6CA 100%)', color: '#fff', fontWeight: 600, fontSize: 16, border: 'none', boxShadow: '0 2px 8px #D5CFE1', cursor: 'pointer' }}
               >
                 {editingEntry ? 'Save Changes' : 'Save Entry'}

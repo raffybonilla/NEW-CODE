@@ -5,6 +5,7 @@
     "tailwindcss": "^4.1.11"
   },
   "dependencies": {
-    "framer-motion": "^12.19.2"
+    "framer-motion": "^12.19.2",
+    "recharts": "^3.0.2"
   }
 }
