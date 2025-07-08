@@ -2,7 +2,7 @@ import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { FaSmile, FaBook, FaTasks, FaChartBar } from "react-icons/fa";
+import { FaSmile, FaBook, FaTasks, FaChartBar, FaGlobe } from "react-icons/fa";
 import Sidebar from "../../components/Sidebar";
 import { supabase } from "../../lib/supabaseClient";
 import { useRouter } from "next/router";
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [recentPublicEntries, setRecentPublicEntries] = useState<any[]>([]);
   const router = useRouter();
   const [showNamePrompt, setShowNamePrompt] = useState(false);
 
@@ -34,7 +35,46 @@ export default function Dashboard() {
         firstName = profile.full_name.split(' ')[0];
       }
       setUser({ first_name: firstName, id: user.id });
+      
+      // Fetch recent public entries
+      const { data: publicEntries } = await supabase
+        .from('journal')
+        .select('*')
+        .eq('public', true)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      setRecentPublicEntries(publicEntries || []);
+      
       setLoading(false);
+
+      // Set up real-time subscription for public entries
+      const channel = supabase
+        .channel('dashboard_public_entries')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'journal',
+            filter: 'public=eq.true'
+          },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              setRecentPublicEntries(prev => [payload.new, ...prev.slice(0, 2)]);
+            } else if (payload.eventType === 'UPDATE') {
+              setRecentPublicEntries(prev => prev.map(entry => 
+                entry.id === payload.new.id ? payload.new : entry
+              ));
+            } else if (payload.eventType === 'DELETE') {
+              setRecentPublicEntries(prev => prev.filter(entry => entry.id !== payload.old.id));
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
     checkAuth();
   }, [router]);
@@ -163,9 +203,9 @@ export default function Dashboard() {
                 <FaBook className="text-2xl text-[#A09ABC]" /> Quick Entry
               </div>
               <p className="text-[#6C63A6] mb-4 text-center">Tap below to create a new journal entry</p>
-              <button className="bg-gradient-to-r from-[#A09ABC] to-[#B6A6CA] text-white px-5 py-2 rounded-lg font-bold shadow flex items-center gap-2 hover:from-[#B6A6CA] hover:to-[#A09ABC] transition">
+              <Link href="/dashboard/journal" className="bg-gradient-to-r from-[#A09ABC] to-[#B6A6CA] text-white px-5 py-2 rounded-lg font-bold shadow flex items-center gap-2 hover:from-[#B6A6CA] hover:to-[#A09ABC] transition">
                 <span className="text-xl">+</span> New Entry
-              </button>
+              </Link>
             </div>
             
             {/* Recent Activity */}
@@ -191,6 +231,50 @@ export default function Dashboard() {
                 </li>
               </ul>
             </div>
+          </div>
+          
+          {/* Recent Public Entries Section */}
+          <div className="mt-10">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-[#A09ABC]" style={{ fontFamily: 'serif', letterSpacing: 1 }}>
+                🌍 Recent Public Entries
+              </h3>
+              <Link href="/feed" className="flex items-center gap-2 bg-gradient-to-r from-[#A09ABC] to-[#B6A6CA] text-white px-4 py-2 rounded-lg font-semibold shadow hover:from-[#B6A6CA] hover:to-[#A09ABC] transition">
+                <FaGlobe />
+                View All
+              </Link>
+            </div>
+            
+            {recentPublicEntries.length === 0 ? (
+              <div className="text-center bg-white/60 p-8 rounded-xl backdrop-blur-md border border-white/30">
+                <div className="text-4xl mb-4">📝</div>
+                <div className="text-lg font-medium text-[#6C63A6] mb-2">No public entries yet</div>
+                <div className="text-sm text-[#6C63A6] mb-4">Be the first to share your thoughts with the community!</div>
+                <Link href="/dashboard/journal" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#A09ABC] to-[#B6A6CA] text-white px-6 py-3 rounded-lg font-semibold shadow hover:from-[#B6A6CA] hover:to-[#A09ABC] transition">
+                  <FaBook />
+                  Create Your First Entry
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {recentPublicEntries.map((entry, idx) => (
+                  <div key={entry.id} className="bg-white/70 rounded-xl p-6 shadow border border-white/30 backdrop-blur-md hover:shadow-lg transition-all duration-300">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="font-semibold text-[#7c3aed] text-lg">
+                        {entry.title && entry.title.trim() !== '' ? entry.title : `Entry #${idx + 1}`}
+                      </div>
+                      <span className="bg-[#A09ABC] text-white px-2 py-1 rounded-full text-xs">🌍 Public</span>
+                    </div>
+                    <div className="text-[#6C63A6] text-sm mb-3 line-clamp-3">
+                      {entry.content.length > 150 ? `${entry.content.substring(0, 150)}...` : entry.content}
+                    </div>
+                    <div className="text-xs text-[#A09ABC] opacity-70">
+                      {new Date(entry.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>
